@@ -1,0 +1,94 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
+# Advent Of Code 2022
+
+```{r, echo=FALSE, results='hide'}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+rm(list = ls())
+```
+
+```{r}
+library(readr)
+library(magrittr)
+library(dplyr)
+```
+
+## Day 1
+
+### Part 1
+
+Find the Elf carrying the most Calories. How many total Calories is that Elf carrying?
+
+```{r}
+raw_data <- read_csv("day1.txt", col_names = FALSE, skip_empty_rows = FALSE)
+```
+
+```{r}
+data = c()
+cumsum = 0
+for (v in raw_data$X1) {
+  if (is.na(v)) {
+    data <- append(data, cumsum)
+    cumsum <- 0
+  } else {
+    cumsum <- cumsum + v
+  }
+}
+
+max_cal <- 0
+for (v in data) {
+  if (v > max_cal) {
+    max_cal <- v
+  }
+}
+
+max_cal
+```
+### Part 2
+
+Find the top three Elves carrying the most Calories. How many Calories are those Elves carrying in total?
+
+```{r}
+max_cals <- c(0, 0, 0)
+for (v in data) {
+  for (i in 1:3) {
+    if (v > max_cals[i]) {
+      min_index <- 1
+      if (max_cals[2] < max_cals[min_index]) {
+        min_index <- 2
+      }
+      if (max_cals[3] < max_cals[min_index]) {
+        min_index <- 3
+      }
+      max_cals[min_index] <- v
+      break
+    }
+  }
+}
+
+sum(max_cals)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

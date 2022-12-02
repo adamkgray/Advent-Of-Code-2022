@@ -72,11 +72,82 @@ for (v in data) {
 sum(max_cals)
 ```
 
+## Day 2
 
+### Part 1
 
+What would your total score be if everything goes exactly according to your strategy guide?
 
+```{r}
+data <- read_delim("day2.txt", col_names = c("You", "Me"), delim = " ") %>%
+  mutate(
+    You = case_when(
+      You == "A" ~ "R",
+      You == "B" ~ "P",
+      You == "C" ~ "S"
+    ),
+    Me = case_when(
+      Me == "X" ~ "R",
+      Me == "Y" ~ "P",
+      Me == "Z" ~ "S"
+    ),
+    ShapeScore = case_when(
+      Me == "R" ~ 1,
+      Me == "P" ~ 2,
+      Me == "S" ~ 3
+    ),
+    OutcomeScore = case_when(
+      Me == You ~ 3,
+      Me == "R" & You == "S" ~ 6,
+      Me == "P" & You == "R" ~ 6,
+      Me == "S" & You == "P" ~ 6,
+      TRUE ~ 0
+    ),
+    Score = ShapeScore + OutcomeScore
+  )
 
+sum(data$Score)
+```
 
+Following the Elf's instructions for the second column, what would your total score be if everything goes exactly according to your strategy guide?
+
+```{r}
+data <- read_delim("day2.txt", col_names = c("You", "Outcome"), delim = " ") %>%
+  mutate(
+    You = case_when(
+      You == "A" ~ "R",
+      You == "B" ~ "P",
+      You == "C" ~ "S"
+    ),
+    Outcome = case_when(
+      Outcome == "X" ~ "Lose",
+      Outcome == "Y" ~ "Draw",
+      Outcome == "Z" ~ "Win"
+    ),
+    OutcomeScore = case_when(
+      Outcome == "Lose" ~ 0,
+      Outcome == "Draw" ~ 3,
+      Outcome == "Win" ~ 6
+    ),
+    Me = case_when(
+      Outcome == "Draw" ~ You,
+      Outcome == "Win" & You == "R" ~ "P",
+      Outcome == "Win" & You == "P" ~ "S",
+      Outcome == "Win" & You == "S" ~ "R",
+      Outcome == "Lose" & You == "R" ~ "S",
+      Outcome == "Lose" & You == "P" ~ "R",
+      Outcome == "Lose" & You == "S" ~ "P",
+    ),
+    ShapeScore = case_when(
+      Me == "R" ~ 1,
+      Me == "P" ~ 2,
+      Me == "S" ~ 3
+    ),
+    Score = ShapeScore + OutcomeScore
+  )
+
+sum(data$Score)
+```
 
 
 

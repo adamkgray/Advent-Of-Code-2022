@@ -11,9 +11,7 @@ rm(list = ls())
 ```
 
 ```{r}
-library(readr)
-library(magrittr)
-library(dplyr)
+library(tidyverse)
 ```
 
 ## Day 1
@@ -24,11 +22,8 @@ Find the Elf carrying the most Calories. How many total Calories is that Elf car
 
 ```{r}
 raw_data <- read_csv("day1.txt", col_names = FALSE, skip_empty_rows = FALSE)
-```
-
-```{r}
-data = c()
-cumsum = 0
+data <- c()
+cumsum <- 0
 for (v in raw_data$X1) {
   if (is.na(v)) {
     data <- append(data, cumsum)
@@ -47,6 +42,7 @@ for (v in data) {
 
 max_cal
 ```
+
 ### Part 2
 
 Find the top three Elves carrying the most Calories. How many Calories are those Elves carrying in total?
@@ -109,6 +105,8 @@ data <- read_delim("day2.txt", col_names = c("You", "Me"), delim = " ") %>%
 sum(data$Score)
 ```
 
+### Part 2
+
 Following the Elf's instructions for the second column, what would your total score be if everything goes exactly according to your strategy guide?
 
 ```{r}
@@ -149,14 +147,146 @@ data <- read_delim("day2.txt", col_names = c("You", "Outcome"), delim = " ") %>%
 sum(data$Score)
 ```
 
+## Day 3
 
+### Part 1
 
+Find the item type that appears in both compartments of each rucksack. What is the sum of the priorities of those item types?
 
+```{r}
+charToPriority <- function(char) {
+  ascii <- utf8ToInt(char)
+  if (ascii > 90) {
+    return(ascii - 96)
+  } else {
+    return(ascii - 38)
+  }
+}
+```
 
+```{r}
+word2vec <- function(word) {
+  return(strsplit(word, "")[[1]])
+}
+```
 
+```{r}
+common_item.rucksack <- function(items) {
+  left <- substr(items, 1, nchar(items) / 2) # raw string
+  left <- word2vec(left) # vector of chars
+  
+  right <- substr(items, (nchar(items) / 2) + 1, nchar(items)) # raw string
+  right <- word2vec(right) # vector of chars
+  
+  for (c in left) {
+    if (c %in% right) {
+      return(c)
+    } 
+  }
 
+  return('')
+}
 
+charToPriority <- function(char) {
+  ascii <- utf8ToInt(char)
+  if (ascii > 90) {
+    return(ascii - 96)
+  } else {
+    return(ascii - 38)
+  }
+}
 
+data <- read_csv("day3.txt", col_names = c("Items")) %>%
+  mutate(
+    CommonItem = sapply(Items, common_item.rucksack),
+    Priority = sapply(CommonItem, charToPriority)
+  )
+
+sum(data$Priority)
+```
+
+### Part 2
+
+Find the item type that corresponds to the badges of each three-Elf group. What is the sum of the priorities of those item types?
+
+```{r}
+common_item.team <- function(items) {
+  items <- strsplit(items, " ")[[1]] # list of list
+  rucksack.1 <- word2vec(items[1])
+  rucksack.2 <- word2vec(items[2])
+  rucksack.3 <- word2vec(items[3])
+  for (i in 1:3) {
+    rucksack <- word2vec(items[i])
+    for (c in rucksack) {
+      if (c %in% rucksack.1 & c %in% rucksack.2 & c %in% rucksack.3) {
+        return(c)
+      }
+    }
+  }
+  return('')
+}
+
+data <- read_csv("day3.txt", col_names = c("Items")) %>%
+  mutate(TeamId = rep(1:(length(Items) / 3), each = 3)) %>%
+  group_by(TeamId) %>%
+  summarise(Items = str_c(Items, collapse = " ")) %>%
+  mutate(
+    CommonItem = sapply(Items, common_item.team),
+    Priority = sapply(CommonItem, charToPriority)
+  )
+
+sum(data$Priority)
+```
+
+## Day 4
+
+### Part 1
+
+In how many assignment pairs does one range fully contain the other?
+
+```{r}
+lower_range <- function(r) {
+  as.numeric(str_split(r, "-")[[1]][1])
+}
+
+upper_range <- function(r) {
+  as.numeric(str_split(r, "-")[[1]][2])
+}
+```
+
+```{r}
+data <- read_csv("day4.txt", col_names = c("Elf1", "Elf2")) %>%
+  mutate(
+    Elf1Start = sapply(Elf1, lower_range),
+    Elf1End = sapply(Elf1, upper_range),
+    Elf2Start = sapply(Elf2, lower_range),
+    Elf2End = sapply(Elf2, upper_range),
+    OneContainsAnother = 
+      (Elf1Start >= Elf2Start & Elf1End <= Elf2End) | 
+      (Elf2Start >= Elf1Start & Elf2End <= Elf1End)
+  )
+
+sum(data$OneContainsAnother)
+```
+
+### Part 2
+
+In how many assignment pairs do the ranges overlap?
+
+```{r}
+data <- read_csv("day4.txt", col_names = c("Elf1", "Elf2")) %>%
+  mutate(
+    Elf1Start = sapply(Elf1, lower_range),
+    Elf1End = sapply(Elf1, upper_range),
+    Elf2Start = sapply(Elf2, lower_range),
+    Elf2End = sapply(Elf2, upper_range),
+    Overlap =
+      (Elf2Start >= Elf1Start & Elf1End >= Elf2Start) |
+      (Elf1Start >= Elf2Start & Elf2End >= Elf1Start)
+  )
+
+sum(data$Overlap)
+```
 
 
 

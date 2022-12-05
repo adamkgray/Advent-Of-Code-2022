@@ -6,12 +6,18 @@ output:
 # Advent Of Code 2022
 
 ```{r, echo=FALSE, results='hide'}
-knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+knitr::opts_chunk$set(swarning = FALSE, message = FALSE)
 rm(list = ls())
 ```
 
+Some libs and helper functions
+
 ```{r}
 library(tidyverse)
+
+word2vec <- function(word) {
+  return(strsplit(word, "")[[1]])
+}
 ```
 
 ## Day 1
@@ -153,6 +159,8 @@ sum(data$Score)
 
 Find the item type that appears in both compartments of each rucksack. What is the sum of the priorities of those item types?
 
+First define a helper funciton to map characters to priority
+
 ```{r}
 charToPriority <- function(char) {
   ascii <- utf8ToInt(char)
@@ -164,11 +172,7 @@ charToPriority <- function(char) {
 }
 ```
 
-```{r}
-word2vec <- function(word) {
-  return(strsplit(word, "")[[1]])
-}
-```
+Then solve
 
 ```{r}
 common_item.rucksack <- function(items) {
@@ -185,15 +189,6 @@ common_item.rucksack <- function(items) {
   }
 
   return('')
-}
-
-charToPriority <- function(char) {
-  ascii <- utf8ToInt(char)
-  if (ascii > 90) {
-    return(ascii - 96)
-  } else {
-    return(ascii - 38)
-  }
 }
 
 data <- read_csv("day3.txt", col_names = c("Items")) %>%
@@ -288,8 +283,142 @@ data <- read_csv("day4.txt", col_names = c("Elf1", "Elf2")) %>%
 sum(data$Overlap)
 ```
 
+## Day 5
 
+### Part 1
 
+After the rearrangement procedure completes, what crate ends up on top of each stack?
 
+```{r}
+data <- read_lines("day5.txt")
+
+divider <- which(data == "")
+
+raw_stacks <- data[1:(divider - 1)]
+raw_instr <- data[(divider + 1):length(data)]
+
+# define function to extract numbers from raw instruction
+parse_instr <- function(instr) {
+  return(
+    as.numeric(
+      str_extract(
+        instr,
+        "move ([0-9][0-9]*) from ([0-9][0-9]*) to ([0-9][0-9]*)",
+        group = c(1, 2, 3))
+    )
+  )
+}
+
+# create dataframe for instructions
+instr <- raw_instr %>%
+  sapply(parse_instr) %>%
+  t() %>%
+  as.data.frame() %>%
+  rename(NCrates = V1, From = V2, To = V3)
+
+# create list of vec for stacks
+stacks.list <- list()
+for (s in raw_stacks) {
+  stacks.list <- append(stacks.list, list(word2vec(s)))
+}
+stacks.matrix <- do.call(rbind, stacks.list)
+cols_with_data <- which(stacks.matrix[nrow(stacks.matrix),] != " ")
+stacks.matrix <- stacks.matrix[,cols_with_data]
+stacks.matrix <- stacks.matrix[1:nrow(stacks.matrix)-1,]
+stacks.matrix <- stacks.matrix[nrow(stacks.matrix):1,]
+stacks <- stacks.matrix %>% as.data.frame() %>% as.list()
+for (i in 1:length(stacks)) {
+  stacks[[i]] <- stacks[[i]][stacks[[i]] != " "]
+}
+
+# apply instrucions to stacks
+for (i in 1:nrow(instr)) {
+  n_crates <- instr[i,]$NCrates
+  from <- instr[i,]$From
+  to <- instr[i,]$To
+  from_height <- length(stacks[[from]])
+  moving_crates <- stacks[[from]][(from_height - n_crates + 1):from_height] %>% rev()
+  stacks[[from]] <- stacks[[from]][1:(from_height - n_crates)]
+  stacks[[to]] <- append(stacks[[to]], moving_crates)
+}
+
+# get top crates
+top_crates <- c()
+for (i in 1:length(stacks)) {
+  top_crates <- append(top_crates, tail(stacks[[i]], 1))
+}
+
+# show as one string
+top_crates %>% paste(collapse = "")
+```
+
+### Part 2
+
+After the rearrangement procedure completes, what crate ends up on top of each stack?
+
+Can be solved the same way but without reversing the crates being moved
+
+```{r}
+data <- read_lines("day5.txt")
+
+divider <- which(data == "")
+
+raw_stacks <- data[1:(divider - 1)]
+raw_instr <- data[(divider + 1):length(data)]
+
+# define function to extract numbers from raw instruction
+parse_instr <- function(instr) {
+  return(
+    as.numeric(
+      str_extract(
+        instr,
+        "move ([0-9][0-9]*) from ([0-9][0-9]*) to ([0-9][0-9]*)",
+        group = c(1, 2, 3))
+    )
+  )
+}
+
+# create dataframe for instructions
+instr <- raw_instr %>%
+  sapply(parse_instr) %>%
+  t() %>%
+  as.data.frame() %>%
+  rename(NCrates = V1, From = V2, To = V3)
+
+# create list of vec for stacks
+stacks.list <- list()
+for (s in raw_stacks) {
+  stacks.list <- append(stacks.list, list(word2vec(s)))
+}
+stacks.matrix <- do.call(rbind, stacks.list)
+cols_with_data <- which(stacks.matrix[nrow(stacks.matrix),] != " ")
+stacks.matrix <- stacks.matrix[,cols_with_data]
+stacks.matrix <- stacks.matrix[1:nrow(stacks.matrix)-1,]
+stacks.matrix <- stacks.matrix[nrow(stacks.matrix):1,]
+stacks <- stacks.matrix %>% as.data.frame() %>% as.list()
+for (i in 1:length(stacks)) {
+  stacks[[i]] <- stacks[[i]][stacks[[i]] != " "]
+}
+
+# apply instrucions to stacks
+for (i in 1:nrow(instr)) {
+  n_crates <- instr[i,]$NCrates
+  from <- instr[i,]$From
+  to <- instr[i,]$To
+  from_height <- length(stacks[[from]])
+  moving_crates <- stacks[[from]][(from_height - n_crates + 1):from_height]
+  stacks[[from]] <- stacks[[from]][1:(from_height - n_crates)]
+  stacks[[to]] <- append(stacks[[to]], moving_crates)
+}
+
+# get top crates
+top_crates <- c()
+for (i in 1:length(stacks)) {
+  top_crates <- append(top_crates, tail(stacks[[i]], 1))
+}
+
+# show as one string
+top_crates %>% paste(collapse = "")
+```
 
 

@@ -15,8 +15,8 @@ Some libs and helper functions
 ```{r}
 library(tidyverse)
 
-word2vec <- function(word) {
-  return(strsplit(word, "")[[1]])
+str2vec <- function(string) {
+  return(strsplit(string, "")[[1]])
 }
 ```
 
@@ -177,10 +177,10 @@ Then solve
 ```{r}
 common_item.rucksack <- function(items) {
   left <- substr(items, 1, nchar(items) / 2) # raw string
-  left <- word2vec(left) # vector of chars
+  left <- str2vec(left) # vector of chars
   
   right <- substr(items, (nchar(items) / 2) + 1, nchar(items)) # raw string
-  right <- word2vec(right) # vector of chars
+  right <- str2vec(right) # vector of chars
   
   for (c in left) {
     if (c %in% right) {
@@ -207,11 +207,11 @@ Find the item type that corresponds to the badges of each three-Elf group. What 
 ```{r}
 common_item.team <- function(items) {
   items <- strsplit(items, " ")[[1]] # list of list
-  rucksack.1 <- word2vec(items[1])
-  rucksack.2 <- word2vec(items[2])
-  rucksack.3 <- word2vec(items[3])
+  rucksack.1 <- str2vec(items[1])
+  rucksack.2 <- str2vec(items[2])
+  rucksack.3 <- str2vec(items[3])
   for (i in 1:3) {
-    rucksack <- word2vec(items[i])
+    rucksack <- str2vec(items[i])
     for (c in rucksack) {
       if (c %in% rucksack.1 & c %in% rucksack.2 & c %in% rucksack.3) {
         return(c)
@@ -241,11 +241,11 @@ In how many assignment pairs does one range fully contain the other?
 
 ```{r}
 lower_range <- function(r) {
-  as.numeric(str_split(r, "-")[[1]][1])
+  str_split(r, "-")[[1]][1] %>% as.numeric()
 }
 
 upper_range <- function(r) {
-  as.numeric(str_split(r, "-")[[1]][2])
+  str_split(r, "-")[[1]][2] %>% as.numeric()
 }
 ```
 
@@ -290,46 +290,71 @@ sum(data$Overlap)
 After the rearrangement procedure completes, what crate ends up on top of each stack?
 
 ```{r}
+# read data as list of string
 data <- read_lines("day5.txt")
 
+# find where the data format break is
 divider <- which(data == "")
 
+# divide raw data into two parts
 raw_stacks <- data[1:(divider - 1)]
 raw_instr <- data[(divider + 1):length(data)]
 
-# define function to extract numbers from raw instruction
+# define function to extract numbers from raw instructions
 parse_instr <- function(instr) {
   return(
-    as.numeric(
-      str_extract(
-        instr,
-        "move ([0-9][0-9]*) from ([0-9][0-9]*) to ([0-9][0-9]*)",
-        group = c(1, 2, 3))
-    )
+    instr %>% 
+      str_extract("move ([0-9][0-9]*) from ([0-9][0-9]*) to ([0-9][0-9]*)", group = c(1, 2, 3)) %>%
+      as.numeric()
   )
 }
+#####################################
+# create dataframe for instructions #
+#####################################
 
-# create dataframe for instructions
-instr <- raw_instr %>%
+instr.orig <- raw_instr %>%
   sapply(parse_instr) %>%
   t() %>%
   as.data.frame() %>%
   rename(NCrates = V1, From = V2, To = V3)
 
-# create list of vec for stacks
-stacks.list <- list()
+#################################
+# create list of vec for stacks #
+#################################
+
+# first, convert the stacks to a list of character vectors
+stacks.list <- list() 
 for (s in raw_stacks) {
-  stacks.list <- append(stacks.list, list(word2vec(s)))
+  stacks.list <- append(stacks.list, s %>% str2vec() %>% list())
 }
+
+# convert the list of character vectors to a matrix of characters
 stacks.matrix <- do.call(rbind, stacks.list)
+
+# identify the columns that have actual data in them by 
+# isolating the bottom row indexes which are not empty
 cols_with_data <- which(stacks.matrix[nrow(stacks.matrix),] != " ")
 stacks.matrix <- stacks.matrix[,cols_with_data]
+
+# since the bottom row is that same as indexes, it is
+# redundant and can be removed
 stacks.matrix <- stacks.matrix[1:nrow(stacks.matrix)-1,]
+
+# mirror the matrix horizontally to work with the rows as left-to-right lists
 stacks.matrix <- stacks.matrix[nrow(stacks.matrix):1,]
-stacks <- stacks.matrix %>% as.data.frame() %>% as.list()
-for (i in 1:length(stacks)) {
-  stacks[[i]] <- stacks[[i]][stacks[[i]] != " "]
+
+# convert the matrix back to a list of character vectors
+stacks.orig <- stacks.matrix %>% as.data.frame() %>% as.list()
+
+# remove trailing empty characters from the ends of lists
+for (i in 1:length(stacks.orig)) {
+  stacks.orig[[i]] <- stacks.orig[[i]][stacks.orig[[i]] != " "]
 }
+```
+
+```{r}
+instr <- instr.orig
+stacks <- stacks.orig
 
 # apply instrucions to stacks
 for (i in 1:nrow(instr)) {
@@ -356,49 +381,11 @@ top_crates %>% paste(collapse = "")
 
 After the rearrangement procedure completes, what crate ends up on top of each stack?
 
-Can be solved the same way but without reversing the crates being moved
+Can be solved the same way but without reversing the crates being moved (see comment)
 
 ```{r}
-data <- read_lines("day5.txt")
-
-divider <- which(data == "")
-
-raw_stacks <- data[1:(divider - 1)]
-raw_instr <- data[(divider + 1):length(data)]
-
-# define function to extract numbers from raw instruction
-parse_instr <- function(instr) {
-  return(
-    as.numeric(
-      str_extract(
-        instr,
-        "move ([0-9][0-9]*) from ([0-9][0-9]*) to ([0-9][0-9]*)",
-        group = c(1, 2, 3))
-    )
-  )
-}
-
-# create dataframe for instructions
-instr <- raw_instr %>%
-  sapply(parse_instr) %>%
-  t() %>%
-  as.data.frame() %>%
-  rename(NCrates = V1, From = V2, To = V3)
-
-# create list of vec for stacks
-stacks.list <- list()
-for (s in raw_stacks) {
-  stacks.list <- append(stacks.list, list(word2vec(s)))
-}
-stacks.matrix <- do.call(rbind, stacks.list)
-cols_with_data <- which(stacks.matrix[nrow(stacks.matrix),] != " ")
-stacks.matrix <- stacks.matrix[,cols_with_data]
-stacks.matrix <- stacks.matrix[1:nrow(stacks.matrix)-1,]
-stacks.matrix <- stacks.matrix[nrow(stacks.matrix):1,]
-stacks <- stacks.matrix %>% as.data.frame() %>% as.list()
-for (i in 1:length(stacks)) {
-  stacks[[i]] <- stacks[[i]][stacks[[i]] != " "]
-}
+instr <- instr.orig
+stacks <- stacks.orig
 
 # apply instrucions to stacks
 for (i in 1:nrow(instr)) {
@@ -406,7 +393,7 @@ for (i in 1:nrow(instr)) {
   from <- instr[i,]$From
   to <- instr[i,]$To
   from_height <- length(stacks[[from]])
-  moving_crates <- stacks[[from]][(from_height - n_crates + 1):from_height]
+  moving_crates <- stacks[[from]][(from_height - n_crates + 1):from_height] # NO REVERSE
   stacks[[from]] <- stacks[[from]][1:(from_height - n_crates)]
   stacks[[to]] <- append(stacks[[to]], moving_crates)
 }
@@ -420,5 +407,53 @@ for (i in 1:length(stacks)) {
 # show as one string
 top_crates %>% paste(collapse = "")
 ```
+
+## Day 6
+
+### Part 1
+
+How many characters need to be processed before the first start-of-packet marker is detected?
+
+```{r}
+data <- read_lines("day6.txt") %>% str2vec()
+start_of_packet <- 4
+offset <- start_of_packet - 1
+marker <- NA
+for (i in start_of_packet:length(data)) {
+  if (data[(i - offset):i] %>% length() == data[(i - offset):i] %>% unique() %>% length()) {
+    marker <- i
+    break
+  }
+}
+marker
+```
+
+## Part 2
+
+How many characters need to be processed before the first start-of-message marker is detected?
+
+```{r}
+data <- read_lines("day6.txt") %>% str2vec()
+start_of_message <- 14
+offset <- start_of_message - 1
+marker <- NA
+for (i in start_of_message:length(data)) {
+  if (data[(i - offset):i] %>% length() == data[(i - offset):i] %>% unique() %>% length()) {
+    marker <- i
+    break
+  }
+}
+marker
+```
+
+
+
+
+
+
+
+
+
+
 
 
